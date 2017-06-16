@@ -1,34 +1,38 @@
-'use strict';
+'use strict'
 
-var express = require("express");
-var bodyParser = require('body-parser');
-var request = require('request');
-const port = process.env.PORT || 4201;
+let express = require("express")
+let bodyParser = require('body-parser')
+let request = require('request')
+let apiai = require('apiai')
 
-const APP_TOKEN = 'EAAMyS6LivaUBAE3GxlK2Sdt2eNWz1tYZCpZAzmfnDAZB5cPf4qWVbuO1cPE5YH8JOGfep6OIS6yapCa237TZATntMa79PhO75iYAgGZBseuKK1ogh2oJEsPZBDeYKhXCKvdWZCk5FsSmkPPtaPqn1Ydu50itsgH3gTmrpcM9CobZCAZDZD';
+let agent = apiai('e6fa3d1387f84897ae7dfa06251336e8')
 
-var app = express();
-app.use(bodyParser.json());
+const port = process.env.PORT || 4201
+
+const APP_TOKEN = 'EAAMyS6LivaUBAHWY4RxSUkheqrwaueyqE3ZAZAl12BpZBPzlpGyKGtOJWmJkkUZBdR1RnGdZCNeOJ2exZCGn8WxubuvgGTfwP3gG1yMrLfJcFpXfLpn2UKx00h8z5j735BTt03AYpmAjgqyu9MISXYwH2TCZCZCkZAwuytYvAraxWIwZDZD'
+
+var app = express()
+app.use(bodyParser.json())
 
 app.listen(port, function () {
-    console.log(`el servidor se encuentra en el puerto ${port}`);
-});
+    console.log(`el servidor se encuentra en el puerto ${port}`)
+})
 
 app.get('/', function (req, res) {
-    res.send('Bienvenidos a Trendy Store');
-});
+    res.send('Bienvenidos a Trendy Store')
+})
 
+//Breakpoint validation server facebook
 app.get('/webhook', function (req, res) {
     if (req.query['hub.verify_token'] == 'tes_token-say-hello') {
-        res.send(req.query['hub.challenge']);
+        res.send(req.query['hub.challenge'])
     } else {
-        res.send('tu no tienes que entrar aqui');
+        res.send('tu no tienes que entrar aqui')
     }
-});
+})
 
 app.post('/webhook', function (req, res) {
-
-    var data = req.body;
+    var data = req.body
     if (data.object == 'page') {
 
         data.entry.forEach(function (pageEntry) {
@@ -37,37 +41,51 @@ app.post('/webhook', function (req, res) {
                 if (messagingEvent.message) {
                     receiveMessage(messagingEvent)
                 }
-            });
-        });
-        res.sendStatus(200);
+            })
+        })
+        res.sendStatus(200)
     }
-});
+})
 
 function receiveMessage(event) {
+    let senderId = event.sender.id
+    let messageText = event.message.text
 
-    var senderId = event.sender.id;
-    var messageText = event.message.text;
+    let request = agent.textRequest(messageText, {
+        sessionId: '588b71f9-75a9-47a3-838c-8ea642cbc297'
+    })
 
-    evaluateMessage(senderId, messageText);
+    request.on('response', function (response) {
+        console.log(JSON.stringify(response))
+        sendMessageText(senderId, response.result.fulfillment.speech )
+    })
+
+    request.on('error', function (error) {
+        console.log(error)
+    })
+
+    request.end()
+
+    //evaluateMessage(senderId, messageText)
 }
 
 function evaluateMessage(recipientId, message) {
-    var finaMessage = "";
+    var finaMessage = ""
 
     if (isContain(message, 'ayuda')) {
-        finaMessage = "Por el momento no te puedo ayudar";
+        finaMessage = "Por el momento no te puedo ayudar"
     } else if (isContain(message, 'ten')) {
 
-        sendMessageImage(recipientId);
+        sendMessageImage(recipientId)
     } else if (isContain(message, 'info')) {
 
-        sendMessageTemplate(recipientId);
+        sendMessageTemplate(recipientId)
 
     } else {
-        finaMessage = "Solo se repetir las cosas : " + message;
+        finaMessage = "Solo se repetir las cosas : " + message
     }
 
-    sendMessageText(recipientId, finaMessage);
+    sendMessageText(recipientId, finaMessage)
 }
 
 function sendMessageText(recipientId, message) {
@@ -79,8 +97,8 @@ function sendMessageText(recipientId, message) {
         message: {
             text: message
         }
-    };
-    callSendAPI(messageData);
+    }
+    callSendAPI(messageData)
 }
 
 function sendMessageImage(recipientId) {
@@ -97,8 +115,8 @@ function sendMessageImage(recipientId) {
                 }
             }
         }
-    };
-    callSendAPI(messageData);
+    }
+    callSendAPI(messageData)
 }
 
 function sendMessageTemplate(recipientId) {
@@ -116,8 +134,8 @@ function sendMessageTemplate(recipientId) {
 
             }
         }
-    };
-    callSendAPI(messageData);
+    }
+    callSendAPI(messageData)
 }
 
 function elementTemplate() {
@@ -148,14 +166,14 @@ function callSendAPI(messageData) {
     }, function (error, response, data) {
 
         if (error) {
-            console.log("no es posible enviar mensaje");
+            console.log("no es posible enviar mensaje")
         } else {
-            console.log("el mensaje fue enviado");
+            console.log("el mensaje fue enviado")
         }
 
-    });
+    })
 }
 
 function isContain(sentence, word) {
-    return sentence.indexOf(word) > -1;
+    return sentence.indexOf(word) > -1
 }
